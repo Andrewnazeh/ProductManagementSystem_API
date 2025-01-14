@@ -1,7 +1,8 @@
 
-
 const Product = require('../models/productModel');
-exports.getProducts = async (req, res) => {
+const uploadImage = require('../middlewares/uploadImageMiddleware');
+
+exports.getProducts = async (req, res, next) => {
     try {
         const products = await Product.find();
         if (!products) {
@@ -23,7 +24,7 @@ exports.getProducts = async (req, res) => {
     }
 }
 
-exports.getProductById = async (req, res) => {
+exports.getProductById = async (req, res, next) => {
     try {
         const id = req.params.id;
         const product = await Product.findById(id);
@@ -45,9 +46,24 @@ exports.getProductById = async (req, res) => {
     }
 }
 
-exports.createProduct = async (req, res) => {
+exports.createProduct = async (req, res, next) => {
     try {
-        const product = await Product.create(req.body);
+        if(req.user.role !== 'admin'){
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to perform this action'
+            });
+        }
+        
+        const imageUrl = await uploadImage(req.file.path);
+
+        const product = await new Product({
+            name: req.body.name,
+            price: req.body.price,
+            description: req.body.description,
+            imageUrl: imageUrl.secure_url
+        }).save();
+        
         res.status(201).json({
             status: 'success',
             data: {
@@ -59,9 +75,17 @@ exports.createProduct = async (req, res) => {
     }
 }
 
-exports.updateProduct = async (req, res) => {
+exports.updateProduct = async (req, res, next) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to perform this action'
+            });
+        }
         const id = req.params.id;
+        const imageUrl = await uploadImage(req.file.path);
+        req.body.imageUrl = imageUrl.secure_url;
         const product = await Product.findByIdAndUpdate(id, req.body, { new: true });
         if (!product) {
             return res.status(404).json({
@@ -80,8 +104,14 @@ exports.updateProduct = async (req, res) => {
     }
 }
 
-exports.deleteProduct = async (req, res) => {
+exports.deleteProduct = async (req, res, next) => {
     try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'You are not authorized to perform this action'
+            });
+        }
         const id = req.params.id;
         const product = await Product.findByIdAndDelete(id);
         if (!product) {

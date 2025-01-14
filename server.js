@@ -6,7 +6,7 @@ const cors = require('cors');
 
 const DBConnection = require('./config/DBConnection');
 const Routers = require('./routers/indexRoute');
-const errorHandler = require('./middlewares/errorHandling');
+const errorHandler = require('./middlewares/errorHandlingMiddleware');
 
 
 
@@ -14,8 +14,9 @@ DBConnection();
 
 
 const app = express();
-app.use(express.json({ limit: '20kb' }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('uploads'));
 app.use(cors());
 app.options('*', cors());
 app.use(compression());
